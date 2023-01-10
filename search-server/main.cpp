@@ -5,12 +5,13 @@ using namespace std;
 int main() {
     int y = 0;
     int x = 0;
-    for (int i = 0; i <= 1000; ++i){
+    for (int i = 0; i <= 100000000; ++i){
         string s = to_string(i);
         //cout << s << endl;
         for (int g = 0; g < s.size(); ++g){
             if (s[g] == '3'){
                 ++y;
+
             }
         }
             if (y > 0){
