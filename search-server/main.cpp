@@ -1,29 +1,55 @@
+#include <algorithm>
 #include <iostream>
 #include <string>
+#include <vector>
+#include <set>
+
 using namespace std;
 
-int main() {
-    int y = 0;
-    int x = 0;
-    for (int i = 0; i <= 100000000; ++i){
-        string s = to_string(i);
-        //cout << s << endl;
-        for (int g = 0; g < s.size(); ++g){
-            if (s[g] == '3'){
-                ++y;
-
-            }
-        }
-            if (y > 0){
-            ++x;
-            y = 0;
-        }
-    }
-    cout << x << endl;
-    return 0;
+string ReadLine() {
+    string s;
+    getline(cin, s);
+    return s;
 }
 
-// Решите загадку: Сколько чисел от 1 до 1000 содержат как минимум одну цифру 3?
-// Напишите ответ здесь: 271
+int ReadLineWithNumber() {
+    int result;
+    cin >> result;
+    ReadLine();
+    return result;
+}
 
-// Закомитьте изменения и отправьте их в свой репозиторий.
+int main() {
+    cout << "Hello"s << endl;
+    const int queryCount = ReadLineWithNumber();
+
+    vector<string> queries(queryCount);
+    for (string& query : queries) {
+        query = ReadLine();
+    }
+    const string buzzword = ReadLine();
+
+    cout << count_if(queries.begin(), queries.end(), [buzzword](const string& query) {
+        set<string> query_set;
+        string word;
+        for (const char& c : query){
+        if (c != ' '){
+            word += c;
+        }
+        else {
+          if (!word.empty() && word != " "s){
+            query_set.insert(word);
+           }
+            word.clear();
+           }
+                    }
+
+     if (!word.empty() && word != " "s){
+         query_set.insert(word);
+     }
+        return query_set.count(buzzword);
+        // Реализуйте эту лямбда-функцию
+        // Верните true, если query содержит слово buzzword
+    });
+    cout << endl;
+}
