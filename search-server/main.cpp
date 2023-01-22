@@ -63,13 +63,13 @@ public:
         double frequency = 1.0 / words.size();
               for (const string& word : words){
                       vocabulary_[word][document_id] += frequency;
-              }
-           }
+        }
+    }
 
 
 
     vector<Document> FindTopDocuments(const string& raw_query) const {
-        const set<string> query_words = ParseQuery(raw_query);
+        const Query query_words = ParseQuery(raw_query);
 
         auto matched_documents = FindAllDocuments(query_words);
 
@@ -90,6 +90,11 @@ private:
 
     set<string> stop_words_;
 
+    struct Query {
+      set<string> plus_words;
+      set<string> minus_words;
+    };
+
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
     }
@@ -104,27 +109,19 @@ private:
         return words;
     }
 
-    set<string> ParseQuery(const string& text) const {
-        set<string> query_words;
-        for (const string& word : SplitIntoWordsNoStop(text)) {
-            query_words.insert(word);
-        }
-        return query_words;
-    }
-
-    set<string> ParseMinusWords(const set<string>& text) const {
-        set<string> minus_words;
-        string pure_minus_word;
-        for (const string& word : text) {
-             if (word[0] == '-'){
-                 pure_minus_word = word.substr(1);
-            }
-            minus_words.insert(pure_minus_word);
-            pure_minus_word.clear();
-                  }
-
-        return minus_words;
-    }
+    Query ParseQuery(const string& text) const {
+      Query plus_minus_words;
+      //vector<string> query_words = SplitIntoWordsNoStop(text);
+      for (const string& word : SplitIntoWordsNoStop(text)) {
+        if (word[0] == '-'){
+            plus_minus_words.minus_words.insert(word.substr(1));
+          }
+        else {
+          plus_minus_words.plus_words.insert(word);
+          }
+      }
+      return plus_minus_words;
+  }
 
  double CalculateIDF(const string& text) const {
       double idf = log (static_cast<double>(document_count_) / static_cast<double>(vocabulary_.at(text).size()));
@@ -132,23 +129,23 @@ private:
    return idf;
  }
 
-     vector<Document> FindAllDocuments(const set<string>& query_words) const {
+     vector<Document> FindAllDocuments(const Query& query_words) const {
        vector<Document> matched_documents;
        map<int, map<string, double>> matched_documents1;
        map<int, double> relevance;
-       set<string> minus_words = ParseMinusWords(query_words);
+       //set<string> minus_words = ParseMinusWords(query_words);
 
-        for (const string& word : query_words){
+        for (const string& word : query_words.plus_words){
             if (vocabulary_.count(word)){
               double word_idf = CalculateIDF(word);
               for (const auto& [key1, value1] : vocabulary_.at(word)){
                                 relevance[key1] += value1 * word_idf;
 
                       }
-                    }
-                }
+                  }
+              }
 
-      for (const auto& word : minus_words) {
+      for (const auto& word : query_words.minus_words) {
       if (vocabulary_.count(word)){
            for (const auto& [docid, frequency] : vocabulary_.at(word)){
                     relevance.erase(docid);
