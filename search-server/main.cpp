@@ -118,6 +118,45 @@ void TestFilter() {
     }
 }
 
+void TestDefinedStatus() {
+
+    {
+      SearchServer search_server;
+            search_server.AddDocument(0, "белый кот и модный ошейник"s,        DocumentStatus::ACTUAL, {8, -3});
+            search_server.AddDocument(1, "пушистый кот пушистый хвост"s,       DocumentStatus::ACTUAL, {7, 2, 7});
+            search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, {5, -12, 2, 1});
+            search_server.AddDocument(3, "ухоженный скворец евгений"s,         DocumentStatus::BANNED, {9});
+
+            for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::BANNED)){
+                ASSERT(document.id == 3);
+            }
+
+            for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::ACTUAL)){
+                ASSERT(document.id != 3);
+            }
+         
+    }
+}
+
+void TestCorrectRelevance() {
+
+    {
+      SearchServer search_server;
+            search_server.SetStopWords("и в на"s);
+            search_server.AddDocument(0, "белый кот и модный ошейник"s,        DocumentStatus::ACTUAL, {8, -3});
+            search_server.AddDocument(1, "пушистый кот пушистый хвост"s,       DocumentStatus::ACTUAL, {7, 2, 7});
+            search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, {5, -12, 2, 1});
+            search_server.AddDocument(3, "ухоженный скворец евгений"s,         DocumentStatus::BANNED, {9});
+
+            for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::BANNED)){
+                ASSERT(abs(document.relevance - 0.231049) < 0.0000001);
+            }
+         
+    }
+}
+
+
+
 
 
 /*
@@ -132,6 +171,8 @@ void TestSearchServer() {
     RUN_TEST(TestCorrectSorting);
     RUN_TEST(TestCorrectRating);
     RUN_TEST(TestFilter);
+    RUN_TEST(TestDefinedStatus);
+    RUN_TEST(TestCorrectRelevance);
     // Не забудьте вызывать остальные тесты здесь
 }
 
