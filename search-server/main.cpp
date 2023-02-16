@@ -70,10 +70,12 @@ void TestCorrectSorting() {
                int m = 0;
                for (size_t i = 0; i + 1 < relevance_v.size(); ++i){
                 if ((relevance_v[i] - relevance_v[i+1]) < 0) {
+                    //Вроде бы по одному и было
                     ++m;
                 }
                }
               ASSERT_EQUAL(m, 0);
+             // cout << m << endl;
      }
 }
 
@@ -82,17 +84,10 @@ void TestCorrectRating() {
         SearchServer search_server;
         vector<int> v = {7, 2, 7};
         int doc_id = 1;
-        int sum = 0;
         search_server.AddDocument(doc_id, "пушистый кот пушистый хвост"s,       DocumentStatus::ACTUAL, v);
-        for (const auto& v_ : v){
-            sum += v_;
-        }
-        int average = sum / static_cast<int>(v.size());
-                int rating;
-               for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s)) {
-                   rating = document.rating;
-               }
-            ASSERT_EQUAL(rating, average);
+        ASSERT_EQUAL(search_server.FindTopDocuments("пушистый ухоженный кот"s).size(), 1);
+        int rating = search_server.FindTopDocuments("пушистый ухоженный кот"s)[0].rating; 
+        ASSERT_EQUAL(rating, ((7 + 2 + 7) / 3));
     }
 }
 
@@ -104,43 +99,32 @@ void TestFilter() {
             search_server.AddDocument(1, "пушистый кот пушистый хвост"s,       DocumentStatus::ACTUAL, {7, 2, 7});
             search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, {5, -12, 2, 1});
             search_server.AddDocument(3, "ухоженный скворец евгений"s,         DocumentStatus::BANNED, {9});
-            int y = 0;
+
             for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id % 2 == 0; })){
-                if (document.id % 2 != 0){
-                    ++y;
-                }
-
+                ASSERT(document.id % 2 == 0);
             }
-           ASSERT_EQUAL(y, 0);
-
-           y = 0;
+         
              for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id > 2; })){
-                if (document.id <= 2 ){
-                    ++y;
-                }
-            }
-           ASSERT_EQUAL(y, 0);
+                ASSERT(document.id > 2 );
+             }
 
-                      y = 0;
              for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL;})){
-                if (document.id == 3){
-                    ++y;
-                }
+                ASSERT(document.id != 3);
             }
-           ASSERT_EQUAL(y, 0);
-
-                                 y = 0;
+ 
              for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return rating > 0;})){
-                if (document.id == 2){
-                    ++y;
+                ASSERT(document.id != 2);
                 }
-            }
-           ASSERT_EQUAL(y, 0);
-
     }
 }
 
 
+
+/*
+Разместите код остальных тестов здесь
+*/
+
+// Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
     RUN_TEST(TestExcludeDocumentsWithMinusWords);
@@ -148,6 +132,7 @@ void TestSearchServer() {
     RUN_TEST(TestCorrectSorting);
     RUN_TEST(TestCorrectRating);
     RUN_TEST(TestFilter);
+    // Не забудьте вызывать остальные тесты здесь
 }
 
 // --------- Окончание модульных тестов поисковой системы -----------
