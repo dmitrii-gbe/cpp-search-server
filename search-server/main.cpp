@@ -69,13 +69,11 @@ void TestCorrectSorting() {
                }
                int m = 0;
                for (size_t i = 0; i + 1 < relevance_v.size(); ++i){
-                if ((relevance_v[i] - relevance_v[i+1]) < 0) {
-                    //Вроде бы по одному и было
+                if (relevance_v[i] < relevance_v[i + 1]) {
                     ++m;
                 }
                }
               ASSERT_EQUAL(m, 0);
-             // cout << m << endl;
      }
 }
 
@@ -91,7 +89,7 @@ void TestCorrectRating() {
     }
 }
 
-void TestFilter() {
+void TestFilteringByPredicate() {
 
     {
       SearchServer search_server;
@@ -100,25 +98,31 @@ void TestFilter() {
             search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, {5, -12, 2, 1});
             search_server.AddDocument(3, "ухоженный скворец евгений"s,         DocumentStatus::BANNED, {9});
 
-            for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id % 2 == 0; })){
-                ASSERT(document.id % 2 == 0);
-            }
-         
-             for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id > 2; })){
-                ASSERT(document.id > 2 );
-             }
-
-             for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL;})){
-                ASSERT(document.id != 3);
-            }
+                auto documents = search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id % 2 == 0; });
+                ASSERT(documents.size() == 2);
+                ASSERT(documents[0].id % 2 == 0);
+                ASSERT(documents[1].id % 2 == 0);
+            
+                documents = search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id > 2; });
+                ASSERT(documents.size() == 1);
+                ASSERT(documents[0].id > 2 );
+             
+                documents = search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
+                ASSERT(documents.size() == 3);
+                ASSERT(documents[0].id != 3);
+                ASSERT(documents[1].id != 3);
+                ASSERT(documents[2].id != 3);
+            
  
-             for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return rating > 0;})){
-                ASSERT(document.id != 2);
-                }
+                documents = search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return rating > 0;});
+                ASSERT(documents.size() == 3);
+                ASSERT(documents[0].id != 2);
+                ASSERT(documents[1].id != 2);
+                ASSERT(documents[2].id != 2);
     }
 }
 
-void TestDefinedStatus() {
+void TestFilteringByStatus() {
 
     {
       SearchServer search_server;
@@ -126,31 +130,32 @@ void TestDefinedStatus() {
             search_server.AddDocument(1, "пушистый кот пушистый хвост"s,       DocumentStatus::ACTUAL, {7, 2, 7});
             search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, {5, -12, 2, 1});
             search_server.AddDocument(3, "ухоженный скворец евгений"s,         DocumentStatus::BANNED, {9});
+            auto documents = search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::BANNED);
+                ASSERT(documents.size() == 1);
+                ASSERT(documents[0].id == 3);
+            
 
-            for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::BANNED)){
-                ASSERT(document.id == 3);
-            }
-
-            for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::ACTUAL)){
-                ASSERT(document.id != 3);
-            }
-         
+            documents = search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::ACTUAL);
+                ASSERT(documents.size() == 3);
+                ASSERT(documents[0].id != 3);
+                ASSERT(documents[1].id != 3);
+                ASSERT(documents[2].id != 3);    
     }
 }
 
-void TestCorrectRelevance() {
+void TestCalculatingCorrectRelevance() {
 
     {
       SearchServer search_server;
-            search_server.SetStopWords("и в на"s);
             search_server.AddDocument(0, "белый кот и модный ошейник"s,        DocumentStatus::ACTUAL, {8, -3});
             search_server.AddDocument(1, "пушистый кот пушистый хвост"s,       DocumentStatus::ACTUAL, {7, 2, 7});
             search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, {5, -12, 2, 1});
             search_server.AddDocument(3, "ухоженный скворец евгений"s,         DocumentStatus::BANNED, {9});
+            //Четыре документа добавлены, чтобы релевантность искомого не была нулём. Ноль можно получить по-разному, а ln(2)/3 только одним правильным способом.
 
-            for (const auto& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::BANNED)){
-                ASSERT(abs(document.relevance - 0.231049) < 0.0000001);
-            }
+           auto document = search_server.FindTopDocuments("пушистый ухоженный кот"s, DocumentStatus::BANNED)[0];
+                ASSERT(document.relevance == log(2)/3);
+            
          
     }
 }
@@ -170,9 +175,9 @@ void TestSearchServer() {
     RUN_TEST(TestMatching);
     RUN_TEST(TestCorrectSorting);
     RUN_TEST(TestCorrectRating);
-    RUN_TEST(TestFilter);
-    RUN_TEST(TestDefinedStatus);
-    RUN_TEST(TestCorrectRelevance);
+    RUN_TEST(TestFilteringByPredicate);
+    RUN_TEST(TestFilteringByStatus);
+    RUN_TEST(TestCalculatingCorrectRelevance);
     // Не забудьте вызывать остальные тесты здесь
 }
 
