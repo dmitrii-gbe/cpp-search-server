@@ -80,21 +80,15 @@ enum class DocumentStatus {
 class SearchServer {
 public:
 
-inline static constexpr int INVALID_DOCUMENT_ID = -1;
-
-    template <typename StringContainer>
+   template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
             for (const string& str : stop_words){
-               for (const char& c : str){
-                for (int i = 0; i <= 31; ++i){
-                    if (static_cast<int>(c) == i){
+               if (AreThereProhibitedSymbols(str)){
                         throw invalid_argument("Some of the stop words contains one of prohibited symbols"s);
                 }
-             }
-           } 
-        }
-     }
+              }
+           }
 
     explicit SearchServer(const string& stop_words_text)
         : SearchServer(
@@ -104,18 +98,10 @@ inline static constexpr int INVALID_DOCUMENT_ID = -1;
 
     int GetDocumentId(int index) const {
         
-        if ((index < 0) || (index >= documents_.size())){
+        if ((index < 0) || (index >= document_ids_.size())){
             throw out_of_range("The requsted index is out of range"s);
-        }
-
-        map<int, int> index_to_id;
-        int i = 0;
-        for (const auto& [id, document] : documents_){
-                index_to_id[i] = id;
-                ++i;
-            }
-        
-        return index_to_id[index];
+        }     
+        return document_ids_[index];
     }
 
     void AddDocument(int document_id, const string& document, DocumentStatus status,
@@ -128,13 +114,9 @@ inline static constexpr int INVALID_DOCUMENT_ID = -1;
           throw invalid_argument("Negative ids are prohibited"s);
         }
 
-        for (const char& c : document){
-            for (int i = 0; i <= 31; ++i){
-                if (static_cast<int>(c) == i){
-                    throw invalid_argument("The document contains some of prohibited symbols"s);
-                }
-            }
-        } 
+        if (AreThereProhibitedSymbols(document)){
+            throw invalid_argument("The document contains some of prohibited symbols"s);
+        }
 
         const vector<string> words = SplitIntoWordsNoStop(document);
         const double inv_word_count = 1.0 / words.size();
@@ -142,6 +124,7 @@ inline static constexpr int INVALID_DOCUMENT_ID = -1;
             word_to_document_freqs_[word][document_id] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
+        document_ids_.push_back(document_id);
     }
 
     template <typename DocumentPredicate>
@@ -149,22 +132,9 @@ inline static constexpr int INVALID_DOCUMENT_ID = -1;
                                       DocumentPredicate document_predicate) const {
         const Query query = ParseQuery(raw_query);
 
-        if (query.minus_words.count(""s)){
-            throw invalid_argument("Invalid minus words"s);
-        }
-        for (const string& s : query.minus_words){
-            if (s[0] == '-'){
-                throw invalid_argument("Invalid minus words"s);
-            }
-        }
-
-         for (const char& c : raw_query){
-            for (int i = 0; i <= 31; ++i){
-                if (static_cast<int>(c) == i){
+                if (AreThereProhibitedSymbols(raw_query)){
                     throw invalid_argument("The query contains some of prohibited symbols"s);
                 }
-            }
-        } 
 
         vector<Document> matched_documents = FindAllDocuments(query, document_predicate);
 
@@ -200,21 +170,8 @@ inline static constexpr int INVALID_DOCUMENT_ID = -1;
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
         const Query query = ParseQuery(raw_query);
 
-        if (query.minus_words.count(""s)){
-            throw invalid_argument("Invalid minus words"s);
-        }
-        for (const string& s : query.minus_words){
-            if (s[0] == '-'){
-                throw invalid_argument("Invalid minus words"s);
-            }
-        }
-
-         for (const char& c : raw_query){
-            for (int i = 0; i <= 31; ++i){
-                if (static_cast<int>(c) == i){
-                    throw invalid_argument("The query contains some of prohibited symbols"s);
-                }
-            }
+        if (AreThereProhibitedSymbols(raw_query)){
+            throw invalid_argument("The query contains some of prohibited symbols"s);
         } 
 
         vector<string> matched_words;
@@ -247,6 +204,18 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
+    vector<int> document_ids_;
+
+    bool AreThereProhibitedSymbols (const string& str) const {
+        for (const char& c : str){
+                for (int i = 0; i <= 31; ++i){
+                    if (static_cast<int>(c) == i){
+                        return true;
+                    }
+               }
+          }
+          return false;
+    }
 
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -285,6 +254,10 @@ private:
         if (text[0] == '-') {
             is_minus = true;
             text = text.substr(1);
+            
+        if (text.empty() || text[0] == '-'){
+            throw invalid_argument("Invalid minus words"s);
+            }
         }
         return {text, is_minus, IsStopWord(text)};
     }
@@ -365,17 +338,17 @@ int main() {
         cout << "The error is : "s << message.what() << endl;
     }*/
     
-   /*try {
+  /* try {
       vector<string> v = {"y"s, "в", "н§а"s};
       SearchServer search_server(v);
     } catch (const invalid_argument& message){
         cout << "The error is: "s << message.what() << endl;
     }*/
 
-   /* try {
+   /*try {
       SearchServer search_server("и в на"s);
-      search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
-      search_server.AddDocument(1, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2});
+      search_server.AddDocument(1, "пушистyый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
+      search_server.AddDocument(2, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2});
     } catch (const invalid_argument& message){
         cout << "The error is : "s << message.what() << endl;
     }*/
@@ -394,22 +367,30 @@ int main() {
         cout << "The error is : "s << message.what() << endl;
     }*/
 
-     /* try {
+    /*try {
       SearchServer search_server("yи в на"s);
       search_server.AddDocument(1, "пушyистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
-      search_server.FindTopDocuments("--пушистый"s);
+      search_server.FindTopDocuments("-пушистый"s);
       } catch (const invalid_argument& message){
         cout << "The error is : "s << message.what() << endl;
     }*/
 
-   /* try {
+    /*try {
+      SearchServer search_server("yи в на"s);
+      search_server.AddDocument(1, "пушyистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
+     cout << get<0>(search_server.MatchDocument("хвост -"s, 1))[0];
+      } catch (const invalid_argument& message){
+        cout << "The error is : "s << message.what() << endl;
+    }*/
+
+  /* try {
       SearchServer search_server("yи в на"s);
       search_server.AddDocument(1, "пушyистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
       search_server.AddDocument(8, "пушyистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
       search_server.AddDocument(3, "пушyистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
       search_server.AddDocument(7, "пушyистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
       search_server.AddDocument(2, "пушyистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
-      cout << search_server.GetDocumentId(15) << endl;
+      cout << search_server.GetDocumentId(1) << endl;
       } catch (const out_of_range& message){
         cout << "The error is: "s << message.what() << endl;
     }*/
