@@ -6,7 +6,7 @@ enum class DocumentStatus {
     IRRELEVANT,
     BANNED,
     REMOVED,
-        };
+};
 
 struct Document {
    Document() = default;
@@ -16,7 +16,7 @@ struct Document {
         , relevance(relevance)
         , rating(rating) {
             
-        }
+    }
 
    int id = 0;
    double relevance = 0.0;
