@@ -8,9 +8,12 @@
 #include <algorithm>
 #include <vector>
 
+
 using std::string_literals::operator""s;
 
-const int MAX_RESULT_DOCUMENT_COUNT = 5;
+constexpr int MAX_RESULT_DOCUMENT_COUNT = 5;
+
+const double DELTA = 1e-6;
 
 class SearchServer {
 public:
@@ -38,7 +41,7 @@ public:
 
         std::sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (std::abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                 if (std::abs(lhs.relevance - rhs.relevance) < DELTA) {
                      return lhs.rating > rhs.rating;
                  } else {
                      return lhs.relevance > rhs.relevance;
@@ -60,13 +63,17 @@ public:
     int GetDocumentId(int index) const;
 
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
+
+        
+
     
 private:
-    
+
     struct DocumentData {
         int rating;
         DocumentStatus status;
     };
+
     
     const std::set<std::string> stop_words_;
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
