@@ -21,9 +21,12 @@ void SearchServer::AddDocument(int document_id, const string& document, Document
         const double inv_word_count = 1.0 / words.size();
         for (const string& word : words) {
             word_to_document_freqs_[word][document_id] += inv_word_count;
+            document_id_to_word_frequency_[document_id][word] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
         document_ids_.push_back(document_id);
+       
+
 }
 
     
@@ -39,9 +42,7 @@ vector<Document> SearchServer::FindTopDocuments(const string& raw_query) const {
 int SearchServer::GetDocumentCount() const {
         return documents_.size();
 }
-int SearchServer::GetDocumentId(int index) const {
-        return document_ids_.at(index);
-}
+
 tuple<vector<string>, DocumentStatus> SearchServer::MatchDocument(const string& raw_query,
                                                         int document_id) const {
         const auto query = ParseQuery(raw_query);
@@ -137,5 +138,33 @@ SearchServer::Query SearchServer::ParseQuery(const string& text) const {
 
 double SearchServer::ComputeWordInverseDocumentFreq(const string& word) const {
         return log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
+}
+
+vector<int>::iterator SearchServer::begin(){
+    return  document_ids_.begin();
+}
+
+vector<int>::iterator SearchServer::end(){
+    return  document_ids_.end();
+
+}
+
+const map<string, double>& SearchServer::GetWordFrequencies(int document_id) const {
+    if (!document_id_to_word_frequency_.count(document_id)){
+        return empty_map_;
+    }
+    else {
+        return document_id_to_word_frequency_.at(document_id);
+    }
+}
+
+void SearchServer::RemoveDocument(int document_id){
+    documents_.erase(document_id);
+    auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
+    document_ids_.erase(it);
+    document_id_to_word_frequency_.erase(document_id);
+    for (const auto& [word, document_freq] : word_to_document_freqs_){
+            word_to_document_freqs_.at(word).erase(document_id);
+        }
 }
 

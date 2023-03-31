@@ -9,6 +9,7 @@
 #include <vector>
 
 
+
 using std::string_literals::operator""s;
 
 constexpr int MAX_RESULT_DOCUMENT_COUNT = 5;
@@ -60,9 +61,17 @@ public:
 
     int GetDocumentCount() const;
 
-    int GetDocumentId(int index) const;
+    // int GetDocumentId(int index) const;
 
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
+
+    std::vector<int>::iterator begin();
+
+    std::vector<int>::iterator end();
+
+    const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
+
+    void RemoveDocument(int document_id);
 
         
 
@@ -79,6 +88,8 @@ private:
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
     std::map<int, DocumentData> documents_;
     std::vector<int> document_ids_;
+    std::map<int, std::map<std::string, double>> document_id_to_word_frequency_;  //Word's frequencies within specific document
+    std::map<std::string, double> empty_map_;
 
     bool IsStopWord(const std::string& word) const;
 
