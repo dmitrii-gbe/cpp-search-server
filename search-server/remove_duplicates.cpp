@@ -1,6 +1,6 @@
 #include "remove_duplicates.h"
-#include <algorithm>
-#include <utility>
+#include <set>
+#include <vector>
 
 using namespace std;
 
