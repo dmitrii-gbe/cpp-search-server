@@ -12,7 +12,7 @@ void RemoveDuplicates(SearchServer& search_server) {
         for (const auto& [word, frequency] : search_server.SearchServer::GetWordFrequencies(document_id)){
                 words.insert(word);
         }
-        if (!words_of_documents.count(words)){
+        if (words_of_documents.count(words) == 0){
                 words_of_documents.insert(words);
         }
         else {
