@@ -53,14 +53,6 @@ public:
         
         return result;
     }
-    
-    /*void Lock(int index){
-        mutexes_[index].lock(); 
-    }
-    
-    void Unlock(int index){
-        mutexes_[index].unlock();
-    }*/
 
 private:
     std::vector<std::map<Key, Value>> storage_;
