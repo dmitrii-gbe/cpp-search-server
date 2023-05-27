@@ -3,9 +3,7 @@
 #include <string>
 #include <set>
 
-//std::vector<std::string> SplitIntoWords(const std::string& text);
-
-std::vector<std::string_view> SplitIntoWords(const std::string_view& str);
+std::vector<std::string_view> SplitIntoWords(const std::string_view str);
 
 
 template <typename StringContainer>

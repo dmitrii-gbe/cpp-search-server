@@ -1,15 +1,12 @@
 #include "document.h"
 
-
-using namespace std;
-
-ostream& operator<<(ostream& out, const Document& document) {
-    out << "{ document_id = "s;
+std::ostream& operator<<(std::ostream& out, const Document& document) {
+    out << "{ document_id = ";
     out << document.id;
-    out << ", relevance = "s;
+    out << ", relevance = ";
     out << document.relevance;
-    out << ", rating = "s;
+    out << ", rating = ";
     out << document.rating;
-    out << " }"s;
+    out << " }";
        return out;
     }

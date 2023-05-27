@@ -8,7 +8,7 @@ public:
     explicit RequestQueue(const SearchServer& search_server);
     
     template <typename DocumentPredicate>
-    std::vector<Document> AddFindRequest(const std::string_view& raw_query, DocumentPredicate document_predicate) {
+    std::vector<Document> AddFindRequest(const std::string_view raw_query, DocumentPredicate document_predicate) {
         auto result = server_.FindTopDocuments(raw_query, document_predicate);
         bool is_there_result = !result.empty();
         QueryResult query_result(is_there_result);
@@ -26,9 +26,9 @@ public:
         return result;
     }
 
-    std::vector<Document> AddFindRequest(const std::string_view& raw_query, DocumentStatus status); 
+    std::vector<Document> AddFindRequest(const std::string_view raw_query, DocumentStatus status); 
 
-    std::vector<Document> AddFindRequest(const std::string_view& raw_query);
+    std::vector<Document> AddFindRequest(const std::string_view raw_query);
      
     int GetNoResultRequests() const;
 

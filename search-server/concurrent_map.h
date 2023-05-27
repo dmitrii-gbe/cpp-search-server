@@ -8,50 +8,39 @@
 #include <mutex>
 
 
-using namespace std::string_literals;
-
-
 template <typename Key, typename Value>
 class ConcurrentMap {
 public:
-    static_assert(std::is_integral_v<Key>, "ConcurrentMap supports only integer keys"s);
+    static_assert(std::is_integral_v<Key>, "ConcurrentMap supports only integer keys");
 
     struct Access {
     
-        Access(ConcurrentMap& p, const Key& key) : parent(p), index(static_cast<uint64_t>(key) % parent.count_), ref_to_value(parent.storage_[index][key]){
+        Access(std::mutex& m, std::map<Key, Value>& sub_map, const Key& key) : guard(m), ref_to_value(sub_map[key]){
         } 
-        
-        ~Access(){
-          parent.mutexes_[index].unlock();
-        }
-        ConcurrentMap& parent;
-        int index = 0;
+
+        std::lock_guard<std::mutex> guard;
         Value& ref_to_value;
-        
     };
 
     explicit ConcurrentMap(size_t bucket_count) : storage_(bucket_count), mutexes_(bucket_count), count_(bucket_count) {}
 
     Access operator[](const Key& key){
-        mutexes_[static_cast<uint64_t>(key) % count_].lock();
-        return Access(*this, key);
+        auto index = static_cast<uint64_t>(key) % count_;
+        return Access(mutexes_[index], storage_[index], key);
     }
 
     std::map<Key, Value> BuildOrdinaryMap(){
-        for (size_t i = 0; i < mutexes_.size(); ++i){
-            mutexes_[i].lock();
-        }
-        
         std::map<Key, Value> result;
         for (size_t i = 0; i < storage_.size(); ++i){
+            std::lock_guard<std::mutex> guard(mutexes_[i]);
             result.merge(storage_[i]);
-        }
-        
-        for (size_t i = 0; i < mutexes_.size(); ++i){
-            mutexes_[i].unlock();
-        }
-        
+        }        
         return result;
+    }
+    
+    void Erase(const Key& key){
+        auto index = static_cast<uint64_t>(key) % count_;
+        storage_[index].erase(key);
     }
 
 private:
